@@ -1,12 +1,10 @@
-# Stoke_by_url
+# Stoke_by_URL
 
-## The script was written to find current information on certain items in XML documents by provided URL
+ The script was written to find current information on certain items in XML documents by provided URL
 
-Author : __Cherniaev Egor__ 	
+* Author : __Cherniaev Egor__, 	  for Brani s.r.o.
 
-for Brani s.r.o.
+## Usage
+* To perform dictionary creation on single link - provide function `get_page_info` this link.
 
-v Brně 29.11.2019
-
-
-
+* If you want to pull out those links firsft - provide `pull_all_url_out` source link(task XML  link). Then you may just uncomment check code down below - result will be printed.
