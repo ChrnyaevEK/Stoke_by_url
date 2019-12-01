@@ -15,7 +15,7 @@ def pull_all_url_out():
         with tmp.TemporaryFile(mode='w+', encoding='utf-8', suffix='xml', ) as temp_file:
             # First - save feed to file(get feed)
             temp_file.write(req.get(
-                'http://www.fit-pro.cz/export/fitp......').text)
+                'http://www.fit-pro.cz/export/fitpro-cf6ad8215df1f1cf993029a1684d5251.xml?fbclid=IwAR0afltIrou5r17ImhgTOuABG57ArKMuMR1Udg6cQfMQ8BW8R8QpNBopo4I').text)
             # Then prepare place for found url's
             found_urls = []
             # As file was written - pointer is in the end of it., Now take it back
@@ -74,8 +74,6 @@ def get_page_info(url):
     return item_disc
 
 
-# ----------------------------------------------------------------------------------------------------------------------
-# --- RUN to get dict() for each url in feed ---
-# for url in pull_all_url_out():
-#     print(get_page_info(url))
-# ----------------------------------------------------------------------------------------------------------------------
+if __name__ == '__main__':
+    for url in pull_all_url_out():
+        print(get_page_info(url))
