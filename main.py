@@ -11,25 +11,22 @@ def pull_all_url_out():
     Pulls out all url found in feed. Url should have tag {http://www.zbozi.cz/ns/offer/1.0}URL
     Return value : list() with each element - url string
     """
-    try:
-        with tmp.TemporaryFile(mode='w+', encoding='utf-8', suffix='xml', ) as temp_file:
-            # First - save feed to file(get feed)
-            temp_file.write(req.get(
-                'http://www.fit-pro.cz/export/fitpro-...').text)
-            # Then prepare place for found url's
-            found_urls = []
-            # As file was written - pointer is in the end of it., Now take it back
-            temp_file.seek(0)
-            for event, elem in ET.iterparse(temp_file):
-                # Every element with this tag contains url of item, which we are looking for
-                if elem.tag == '{http://www.zbozi.cz/ns/offer/1.0}URL':
-                    found_urls.append(elem.text)
-        return found_urls
-    except ET.ParseError as err:
-        print("An error happened: " + err.text)
+    with tmp.TemporaryFile(mode='w+', encoding='utf-8', suffix='xml', ) as temp_file:
+        # First - save feed to file(get feed)
+        temp_file.write(req.get(
+            'http://www.fit-pro.cz/export/fi......').text)
+        # Then prepare place for found url's
+        found_urls = []
+        # As file was written - pointer is in the end of it., Now take it back
+        temp_file.seek(0)
+        for event, elem in ET.iterparse(temp_file):
+            # Every element with this tag contains url of item, which we are looking for
+            if elem.tag == '{http://www.zbozi.cz/ns/offer/1.0}URL':
+                found_urls.append(elem.text)
+    return found_urls
 
 
-def get_page_info(url):
+def get_page_info(url, analysis=0):
     """
     Performs parsing of items web page by its url, looking for category of item(-category) and availability(-stoke)
     Return value : dict() with keys:
@@ -55,11 +52,16 @@ def get_page_info(url):
             else:
                 break
         item_disc['category'] = category
-
     # Second - lets look at the  availability
     tag_with_stoke = soup.find('div', class_="order-box__ship availability availability--1")
     # Availability is represented by tag <div class= "order-box__ship availability availability--1"> AVL </...>
     # Amount of item is given with format : .... whitespace </> whitespace NUM ks ., the last element is XXXks
+    if analysis:
+        if tag_with_stoke:
+            return tag_with_stoke.string
+        else:
+            return ''
+
     if tag_with_stoke:
         # Stores availability
         stoke = ''
@@ -74,6 +76,63 @@ def get_page_info(url):
     return item_disc
 
 
+def get_all_uniq_masks(source_list):
+    """
+    Function creates set of unique masks for list/set of lines., ex.: 'qwerty12>45tr' ---> 'LNSNL'
+    (for analyse purposes)
+    The Letter will be represented with L, Number with N and Symbol with S
+    """
+    # Set appropriate symbols to use
+    letter = 'L'
+    number = 'N'
+    sign = 'S'
+    uniq_masks = set()
+    for source_str in source_list:
+        mask = ''  # Middle mask
+        last = ''  # Type of last symbol found
+        for symb in source_str:
+            # Control for numbers
+            if symb.isnumeric():
+                if last != number:
+                    mask += number
+                    last = number
+                else:
+                    continue
+            # Control for letters
+            elif symb.isalpha():
+                if last != letter:
+                    mask += letter
+                    last = letter
+                else:
+                    continue
+            # Else - it is sign
+            else:
+                if last != sign:
+                    mask += sign
+                    last = sign
+                else:
+                    continue
+        # As  mask is created - it should be unique - that's why sets are used
+        uniq_masks.add(mask)
+    return uniq_masks
+
+
 if __name__ == '__main__':
-    for url in pull_all_url_out():
-        print(get_page_info(url))
+    # ------ analysis
+    # possible_strings = []  # should be list(), not set()., due to compare time
+    # try:
+    #     for url in pull_all_url_out():
+    #         mid_str = get_page_info(url, analysis=1)
+    #         if mid_str:
+    #             possible_strings.append(mid_str)
+    # except req.exceptions.ConnectionError:
+    #     print("\n\n\n\n_____CONNECTION ERROR____\n\n\n\n")
+    # with open('result_u_mask.txt', 'a') as f:
+    #     for m in get_all_uniq_masks(possible_strings):
+    #         f.write(m + '\n')
+
+    # # ------ general performance
+    # for url in pull_all_url_out():
+    #     print(get_page_info(url))
+
+    pass
