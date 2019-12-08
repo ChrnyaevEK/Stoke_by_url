@@ -4,7 +4,10 @@ import requests as req  # Request is used for data collection. XML document link
 import xml.etree.ElementTree as ET  # XML document gets loaded and then parsed by ET
 import bs4  # To perform HTML parsing BS4 is used
 import tempfile as tmp  # To store XML feed, while working on it( string io could be used as well )
+import threading
+from time import sleep
 
+sleep_time = 0.5 # Time to sleep between requests to avoid errors with connection
 
 def pull_all_url_out():
     """
@@ -14,7 +17,7 @@ def pull_all_url_out():
     with tmp.TemporaryFile(mode='w+', encoding='utf-8', suffix='xml', ) as temp_file:
         # First - save feed to file(get feed)
         temp_file.write(req.get(
-            'http://www.fit-pro.cz/export/fi......').text)
+            'http://www.fit-pro.cz/export/fitpro-cf6ad8215df1f1cf993029a1684d5251.xml?fbclid=IwAR0afltIrou5r17ImhgTOuABG57ArKMuMR1Udg6cQfMQ8BW8R8QpNBopo4I').text)
         # Then prepare place for found url's
         found_urls = []
         # As file was written - pointer is in the end of it., Now take it back
@@ -36,7 +39,11 @@ def get_page_info(url, analysis=0):
     # Prepare template of return
     item_disc = {'category': '-', 'stoke': 0}
     # Perform standard routine for HTML parsing
-    soup = bs4.BeautifulSoup(req.get(url).text, 'html.parser')
+    try:
+        soup = bs4.BeautifulSoup(req.get(url).text, 'html.parser')
+    except req.exceptions.ConnectionError:
+        print("\n\n\n\n_____CONNECTION ERROR____\n\n\n\n")
+        return ""
     # First - pull out the category
     # Category is represented by tag <li class= "breadcrumb__item"> CAT <a></a></...>
     # However, product page tag <strong> instead of <a>
@@ -113,26 +120,37 @@ def get_all_uniq_masks(source_list):
                 else:
                     continue
         # As  mask is created - it should be unique - that's why sets are used
+        print(mask)
         uniq_masks.add(mask)
     return uniq_masks
 
 
 if __name__ == '__main__':
     # ------ analysis
-    # possible_strings = []  # should be list(), not set()., due to compare time
-    # try:
-    #     for url in pull_all_url_out():
-    #         mid_str = get_page_info(url, analysis=1)
-    #         if mid_str:
-    #             possible_strings.append(mid_str)
-    # except req.exceptions.ConnectionError:
-    #     print("\n\n\n\n_____CONNECTION ERROR____\n\n\n\n")
-    # with open('result_u_mask.txt', 'a') as f:
-    #     for m in get_all_uniq_masks(possible_strings):
-    #         f.write(m + '\n')
+    analysis = 0  # set t True to perform mask analysis
+    if analysis:
+        possible_strings = []  # should be list(), not set()., due to compare time
 
-    # # ------ general performance
-    # for url in pull_all_url_out():
-    #     print(get_page_info(url))
+        # We will put this function in a thread to increase speed
+        def anl_unit(url_):
+            global possible_strings
+            mid_str = get_page_info(url, analysis=1)
+            if mid_str:
+                possible_strings.append(mid_str)
 
-    pass
+
+        for url in pull_all_url_out():
+            # Threading
+            threading.Thread(target=anl_unit, args=(url,)).start()
+            # Wait for some time to avoid connection errors
+            sleep(sleep_time)
+
+        # When data was collected - save it to file
+        with open('result_u_mask.txt', 'a') as f:
+            for m in get_all_uniq_masks(possible_strings):
+                f.write(m + '\n')
+    # ------ general performance
+    else:
+        for url in pull_all_url_out():
+            threading.Thread(target=lambda x: print(get_page_info(x)), args=(url,)).start()
+            sleep(sleep_time)
